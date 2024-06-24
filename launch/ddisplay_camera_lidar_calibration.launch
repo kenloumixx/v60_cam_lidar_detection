@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <node
+        pkg="nodelet"
+        type="nodelet"
+        args="manager"
+        name="lidar_camera_manager"
+        output="screen" />
+
+    <node
+        pkg="image_proc"
+        type="image_proc" 
+        name="image_proc_node1" />
+
+    <!-- Run image_proc/rectify nodelet -->
+    <node
+        pkg="nodelet"
+        type="nodelet"
+        name="rectify_color"
+        args="load image_proc/rectify lidar_camera_manager --no-bond" >
+        
+        <!-- Remap input topics -->
+        <remap from="image_raw" to="/argus/ar0234_front_left/image_raw" />
+        <remap from="image_mono" to="/argus/ar0234_front_left/image_raw" />
+
+        <!-- Remap output topics -->
+        <remap from="image_rect" to="/image_rect_color" />
+    </node>
+
+    <!-- Wire static transform from the world to velodyne frame -->
+    <node
+        pkg="tf2_ros"
+        type="static_transform_publisher"
+        name="world_velodyne_tf"
+        output="screen"
+        args="0.01348939 -0.21862924 -0.39648376  1.2992982139189786  -1.4490901760073296  0.31995245539510364 world velodyne" />
+
+    <!-- Setup params for Camera-LiDAR calibration script -->
+    <param name="camera_info_topic" type="str" value="/argus/ar0234_front_left/camera_info" />
+    <param name="image_color_topic" type="str" value="/argus/ar0234_front_left/image_raw" />
+    <param name="velodyne_points_topic" type="str" value="/ouster/points" />
+    <param name="camera_lidar_topic" type="str" value="/camera_lidar" />
+    <param name="project_mode" type="bool" value="true" />
+
+    <!-- Run Camera-LiDAR projection script -->
+    <node   
+        pkg="lidar_camera_calibration"
+        type="calibrate_camera_lidar.py"
+        name="calibrate_camera_lidar"
+        output="screen" />
+
+</launch>
